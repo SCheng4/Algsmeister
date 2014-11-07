@@ -7,7 +7,7 @@
 //import algsmeister.semantics._
 //import edu.hmc.langtools._
 //
-//class SemanticsTests extends FunSpec
-//    with LangInterpretMatchers[AST, Int] {
-//  // TODO
+//class AlgsSemanticsTests extends FunSpec
+//    with LangInterpretMatchers[AST, Unit] {
+//  override val parser = .tester _
 //}
