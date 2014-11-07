@@ -24,17 +24,39 @@ package object semantics extends App{
 	def generateGraph(dimension: Dimension, baseCases: BaseCases, dependency: Dependencies): Traversable[(Cell, Cell)] = {
 		dimension match {
 			case OneD() => {
-				
+				for (i <- 0 to 9) {
+      				val cell = OneDCell(i)
+      				if (!baseCases.baseCase.contains(cell))
+      					generateEdges(cell, dependency)
+      			}
 			}
 			
 			case TwoD() => {
-			
+				// TODO placeholder
+				Seq((OneDCell(1), OneDCell(1)))
 			}		
 		}
 		
 		
 		
-		Seq((OneDCell(1), OneDCell(1)))
+	}
+	
+	def generateEdges(cell: Cell, dependency: Dependencies): Traversable[(Cell, Cell)] = {
+		dependency.dependencies.foldLeft(List[(Cell, Cell)]())((list, dep) => {
+			(cell, dep) match {
+				case (OneDCell(i), OneDDep(offset)) => {
+					val newIndex = i + offset
+					if (newIndex >= 0 && newIndex <10) (list :+ (OneDCell(i + offset), cell))
+					else list
+				}
+				case (TwoDCell(i, j), TwoDDep(ioffset, joffset)) => {
+					// TODO: placeholder
+					List((OneDCell(1), OneDCell(1)))
+				}
+				case _ => throw new MatchError("Mismatched parameters.");
+			
+			}}
+		)
 	}
 	
 	
@@ -77,6 +99,8 @@ package object semantics extends App{
 	    tsort(toPred, Seq())
 	}
 
+	
+	println(generateEdges(OneDCell(4), Dependencies(List(OneDDep(-1), OneDDep(10), OneDDep(-10)))))
 
 	//evalProgram(Program(TwoD(), BaseCase(List()), Dependencies(List())))
 }
