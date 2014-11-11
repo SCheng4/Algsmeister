@@ -10,7 +10,9 @@ package object semantics extends App{
 		ast match {
 		case Program(dimension, baseCases, dependencies) => {
 			val DPTable = evalDimension(dimension);
-			println(tsort(generateGraph(dimension, baseCases, dependencies)))
+			val graph = generateGraph(dimension, baseCases, dependencies)
+			println(graph)
+			println(tsort(graph))
 		}
 		case _ => {
 			throw new MatchError("Malformed program.");
@@ -30,7 +32,7 @@ package object semantics extends App{
 			case OneD() => {
 				(0 to TABLE_SIZE - 1).toList.foldLeft(List[(Cell, Cell)]())((list, i) => {
       				val cell = OneDCell(i)
-      				if (!baseCases.baseCase.contains(cell)) list ::: generateEdges(cell, dependency)
+      				if (!baseCases.baseCase.contains(cell)) list ::: generateEdgesForCell(cell, dependency)
       				else list
       					//graph = graph ::: generateEdges(cell, dependency)
       			})
@@ -43,18 +45,31 @@ package object semantics extends App{
 		}
 	}
 	
-	def generateEdges(cell: Cell, dependency: Dependencies): List[(Cell, Cell)] = {
+	def generateEdgesForCell(cell: Cell, dependency: Dependencies): List[(Cell, Cell)] = {
 		dependency.dependencies.foldLeft(List[(Cell, Cell)]())((list, dep) => {
-			(cell, dep) match {
-				case (OneDCell(i), OneDDep(offset)) => {
-					val newIndex = i + offset
-					if (newIndex >= 0 && newIndex < TABLE_SIZE) (list :+ (OneDCell(i + offset), cell))
-					else sys.error("The DP table cannot be filled out. Check your base cases and dependencies!")
+			(cell, dep.start, dep.end) match {
+				case (OneDCell(i), OneDIndices(start), OneDIndices(end)) => {
+				    
+				    val startIndex = start match {
+				        case absIndex(index) => index
+				        case relativeIndex(offset) => i + offset
+				    }
+				    
+				    val endIndex = end match {
+				        case absIndex(index) => index
+				        case relativeIndex(offset) => i + offset
+				    }
+				    
+				    list ::: (startIndex to endIndex).toList.foldLeft(List[(Cell, Cell)]())((list, i) => {
+				        if (i >= 0 && i < TABLE_SIZE) (list :+ (OneDCell(i), cell))
+				        else sys.error("The DP table cannot be filled out. Check your base cases and dependencies!")
+				    })
+				    
 				}
-				case (TwoDCell(i, j), TwoDDep(ioffset, joffset)) => {
-					// TODO: placeholder
-					List((OneDCell(1), OneDCell(1)))
-				}
+//				case (TwoDCell(i, j), TwoDDep(ioffset, joffset)) => {
+//					// TODO: placeholder
+//					List((OneDCell(1), OneDCell(1)))
+//				}
 				case _ => throw new MatchError("Mismatched parameters.");
 			
 			}}
@@ -101,7 +116,10 @@ package object semantics extends App{
 	    tsort(toPred, Seq())
 	}
 
-	evalProgram(Program(OneD(), BaseCases(List(OneDCell(0))), Dependencies(List(OneDDep(-1)))))
+	//evalProgram(Program(OneD(), BaseCases(List(OneDCell(0))), Dependencies(List(Dependency(OneDIndices(relativeIndex(-1)), OneDIndices(relativeIndex(-1)))))))
+	evalProgram(Program(OneD(), BaseCases(List(OneDCell(0), OneDCell(1))), Dependencies(List(Dependency(OneDIndices(absIndex(0)), OneDIndices(absIndex(1)))))))
+
+	
 	//println(generateEdges(OneDCell(4), Dependencies(List(OneDDep(-1), OneDDep(10), OneDDep(-10)))))
 	//evalProgram(Program(TwoD(), BaseCase(List()), Dependencies(List())))
 }

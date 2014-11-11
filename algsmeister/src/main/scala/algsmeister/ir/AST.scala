@@ -18,20 +18,18 @@ case class TwoDCell(row: Int, col: Int) extends Cell
 // extends to 3D DP tables
 //case class ThreeDCell(slice: Int, row: Int, col: Int) extends Cell
 
-sealed abstract class Dependency extends AST
-case class OneDDep(colOffset: Int) extends Dependency
-case class TwoDDep(rowOffset: Int, colOffset: Int) extends Dependency
+case class Dependency(start: Indices, end: Indices) extends AST
+
+sealed abstract class Indices extends AST
+case class OneDIndices(i: Index) extends Indices
+case class TwoDIndices(i: Index, j:Index) extends Indices
+
+sealed abstract class Index extends AST
+case class absIndex(index: Int) extends Index
+case class relativeIndex(offset: Int) extends Index
+
 // extends to 3D DP tables
 //case class ThreeDDep(sliceOffset: Int, rowOffset: Int, colOffset: Int) extends Dependency
 
 // extends to non-constant numbers of dependencies
 // case class cellsAbove() extends Dependency
-
-/*
-What a program looks like in AST:
-
-
-
-
-
-*/
