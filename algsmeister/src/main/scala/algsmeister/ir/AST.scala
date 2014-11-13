@@ -25,8 +25,8 @@ case class OneDIndices(i: Index) extends Indices
 case class TwoDIndices(i: Index, j:Index) extends Indices
 
 sealed abstract class Index extends AST
-case class absIndex(index: Int) extends Index
-case class relativeIndex(offset: Int) extends Index
+case class AbsIndex(index: Int) extends Index
+case class RelativeIndex(offset: Int) extends Index
 
 // extends to 3D DP tables
 //case class ThreeDDep(sliceOffset: Int, rowOffset: Int, colOffset: Int) extends Dependency

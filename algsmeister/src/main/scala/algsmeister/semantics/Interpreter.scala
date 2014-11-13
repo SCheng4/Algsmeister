@@ -51,13 +51,13 @@ package object semantics extends App{
 				case (OneDCell(i), OneDIndices(start), OneDIndices(end)) => {
 				    
 				    val startIndex = start match {
-				        case absIndex(index) => index
-				        case relativeIndex(offset) => i + offset
+				        case AbsIndex(index) => index
+				        case RelativeIndex(offset) => i + offset
 				    }
 				    
 				    val endIndex = end match {
-				        case absIndex(index) => index
-				        case relativeIndex(offset) => i + offset
+				        case AbsIndex(index) => index
+				        case RelativeIndex(offset) => i + offset
 				    }
 				    
 				    list ::: (startIndex to endIndex).toList.foldLeft(List[(Cell, Cell)]())((list, i) => {
@@ -117,7 +117,7 @@ package object semantics extends App{
 	}
 
 	//evalProgram(Program(OneD(), BaseCases(List(OneDCell(0))), Dependencies(List(Dependency(OneDIndices(relativeIndex(-1)), OneDIndices(relativeIndex(-1)))))))
-	evalProgram(Program(OneD(), BaseCases(List(OneDCell(0), OneDCell(1))), Dependencies(List(Dependency(OneDIndices(absIndex(0)), OneDIndices(absIndex(1)))))))
+	evalProgram(Program(OneD(), BaseCases(List(OneDCell(0), OneDCell(1))), Dependencies(List(Dependency(OneDIndices(AbsIndex(0)), OneDIndices(RelativeIndex(-1)))))))
 
 	
 	//println(generateEdges(OneDCell(4), Dependencies(List(OneDDep(-1), OneDDep(10), OneDDep(-10)))))
