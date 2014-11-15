@@ -6,7 +6,7 @@ import algsmeister.ir._
 object funcParser extends JavaTokenParsers with PackratParsers {
 	// parsing interface
     def apply(s: String): ParseResult[AST] = parseAll(program, s)
-
+    
     lazy val program: PackratParser[Program] =
     	("def"~"function"~arguments~":"~
       		"if"~"("~baseCases~")"~":"~"return"~
@@ -17,6 +17,7 @@ object funcParser extends JavaTokenParsers with PackratParsers {
       			     "else"~"consider"~":"~
       			     	recursiveCases
       			 => Program(arguments, baseCases, recursiveCases)}
+    	| failure("Invalid syntax")
     	)
     
     lazy val arguments: PackratParser[Dimension] = (
@@ -31,23 +32,27 @@ object funcParser extends JavaTokenParsers with PackratParsers {
     //lazy val baseCase: PackratParser[Cell] = ()
      
     lazy val recursiveCases: PackratParser[Dependencies] = (
-        opt(repsep(recursiveCase, ",")) ^^ {
-            case Some(rules) => Dependencies(rules)
-            case None => throw new MatchError("Please provide at least one dependency.") 
-        }
+        rep1sep(recursiveCase, ",") ^^ {case rules => Dependencies(rules)}
+        | failure("must provide 1 dependency")
     )
      
     lazy val recursiveCase: PackratParser[Dependency] = (
-        opt(repsep(indices, "~")) ^^ {
-            case None => throw new MatchError("Incorrectly formatted dependency.")
-            case Some(indices) => 
-                if (indices.length == 1) Dependency(indices(0), indices(0))
-                else if (indices.length == 2) Dependency(indices(0), indices(1))
-                else throw new MatchError("Incorrectly formatted dependency.")
+        beginIndices~"~"~endIndices ^^ {case beginIndices~"~"~endIndices => Dependency(beginIndices, endIndices)}
+        | beginIndices ^^ {case beginIndices => Dependency(beginIndices, beginIndices)}
+        | failure("Incorrectly formatted dependency")
+    )
+    
+    lazy val beginIndices: PackratParser[Indices] = (
+        "function"~"("~rep1sep(index, ",")~")" ^^ {
+            case "function"~"("~index~")" =>
+                if (index.length == 1) OneDIndices(index(0))
+                else if (index.length == 2) TwoDIndices(index(0), index(1))
+                // add 3D case here if needed
+                else throw new MatchError("Incorrectly formatted recursive call") 
         }
     )
     
-    lazy val indices: PackratParser[Indices] = (
+    lazy val endIndices: PackratParser[Indices] = (
         "function"~"("~rep1sep(index, ",")~")" ^^ {
             case "function"~"("~index~")" =>
                 if (index.length == 1) OneDIndices(index(0))

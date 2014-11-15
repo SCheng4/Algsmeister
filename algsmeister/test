@@ -1,0 +1,9 @@
+def function(i):
+	if (TODO):
+		return
+
+	else consider:
+		function(0),
+		function(1,2,3),
+		function(i-1),
+		function(0) ~ function(i-1)
