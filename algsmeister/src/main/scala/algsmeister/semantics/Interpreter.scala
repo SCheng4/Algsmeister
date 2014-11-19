@@ -2,18 +2,24 @@ package algsmeister
 
 import algsmeister.ir._
 
-package object semantics extends App {
+package object semantics {
     
     val TABLE_SIZE = 10;
+    
+    class DPTable()
+	case class OneDTable(table: Array[Int]) extends DPTable
+	case class TwoDTable(table: Array[Array[Int]]) extends DPTable
     
 	def evalProgram(ast: AST): Unit = {
 		ast match {
 		case Program(dimension, baseCases, dependencies) => {
-			val DPTable = evalDimension(dimension);
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
 			val graph = generateGraph(dimension, evaluatedBaseCases, dependencies)
-			println(graph)
-			println(tsort(graph))
+			val orderedCells = tsort(graph).toList
+			val DPTable = fillInTable(dimension, orderedCells)
+			
+			//println(graph)
+			println(orderedCells)
 		}
 		case _ => {
 			throw new MatchError("Malformed program.");
@@ -26,6 +32,27 @@ package object semantics extends App {
 			case OneD() => new OneDTable(new Array[Int](TABLE_SIZE))
 			case TwoD() => new TwoDTable(Array.ofDim[Int](TABLE_SIZE, TABLE_SIZE))
 		}
+	}
+	
+	def fillInTable(dim: Dimension, cells: List[Cell]): DPTable = {
+	    dim match {
+	        case OneD() => {
+	            val table = new OneDTable(new Array[Int](TABLE_SIZE))
+	            var x = 0;
+	            for (x <- 0 until cells.length) {
+	                val cell = cells(x)
+	                cell match {
+	                    case OneDCell(i) => {table.table(i) = x}
+	                    case TwoDCell(i, j) => sys.error("OneDCell expected.")
+	                }
+	            }
+	            for ( x <- table.table ) {
+	            	println( x )
+	            	}
+	            table
+	        }
+	        case TwoD() => new TwoDTable(Array.ofDim[Int](TABLE_SIZE, TABLE_SIZE)) // TODO
+	    }
 	}
 	
 	def evalBaseCases(dimension: Dimension, baseCases: BaseCases): List[Cell] = {
@@ -69,11 +96,11 @@ package object semantics extends App {
 	            }
 	            
 	            clause.comparator match {
-	                case <() => {i < condition}
-	                case >() => {i > condition}
-	                case <=() => {i <= condition}
-	                case >=() => {i >= condition}
-	                case equal() => {i == condition}
+	                case isL() => {i < condition}
+	                case isG() => {i > condition}
+	                case isLE() => {i <= condition}
+	                case isGE() => {i >= condition}
+	                case isE() => {i == condition}
 	            }
 	        }
 	        
@@ -137,14 +164,6 @@ package object semantics extends App {
 		)
 	}
 
-	class DPTable()
-	
-	case class OneDTable(table: Array[Int]) extends DPTable {
-	}
-	
-	case class TwoDTable(table: Array[Array[Int]]) extends DPTable {
-	}
-
 	// A function for topological sort
 	// Credit: https://gist.github.com/ThiporKong/4399695
 	def tsort[A](edges: Traversable[(A, A)]): Iterable[A] = {
@@ -163,7 +182,4 @@ package object semantics extends App {
 	    }
 	    tsort(toPred, Seq())
 	}
-
-	evalProgram(Program(OneD(),BaseCases(List(BaseCase(List(Clause(iVal(),equal(),intValue(0)))))),Dependencies(List(Dependency(OneDIndices(AbsIndex(0)),OneDIndices(AbsIndex(0))), Dependency(OneDIndices(RelativeIndex(-1)),OneDIndices(RelativeIndex(-1))), Dependency(OneDIndices(AbsIndex(1)),OneDIndices(RelativeIndex(-1))))))
-)
 }

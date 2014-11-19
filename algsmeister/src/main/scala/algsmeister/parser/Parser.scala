@@ -45,11 +45,11 @@ object funcParser extends JavaTokenParsers with PackratParsers {
     )
     
     lazy val comparator: PackratParser[Comparator] = (
-        "<" ^^ {case "<" => <()}
-        | "<=" ^^ {case "<=" => <=()}
-        | ">" ^^ {case ">" => >()}
-        | ">=" ^^ {case ">=" => >=()}
-        | "==" ^^ {case "==" => equal()}
+        "<=" ^^ {case "<=" => isLE()}
+        | ">=" ^^ {case ">=" => isGE()}
+        | "<" ^^ {case "<" => isL()}
+        | ">" ^^ {case ">" => isG()}
+        | "==" ^^ {case "==" => isE()}
         | failure("Unrecognized comparator")
     )
     

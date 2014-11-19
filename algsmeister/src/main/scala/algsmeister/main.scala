@@ -19,5 +19,6 @@ object Algsmeister extends App {
         case e: funcParser.NoSuccess => println(e)
         case _ => println(parsed.get)
     }
-    //val evaluated = evalProgram(parsed.get)
+    val evaluated = evalProgram(parsed.get)
+
 }

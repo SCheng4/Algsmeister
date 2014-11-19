@@ -22,11 +22,11 @@ case class jVal() extends Variable
 case class iVal() extends Variable
 
 sealed abstract class Comparator
-case class <() extends Comparator
-case class <=() extends Comparator
-case class equal() extends Comparator
-case class >() extends Comparator
-case class >=() extends Comparator
+case class isL() extends Comparator
+case class isLE() extends Comparator
+case class isE() extends Comparator
+case class isG() extends Comparator
+case class isGE() extends Comparator
 
 case class Dependencies(dependencies: List[Dependency]) extends AST
 
