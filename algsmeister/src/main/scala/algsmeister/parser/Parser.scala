@@ -26,9 +26,39 @@ object funcParser extends JavaTokenParsers with PackratParsers {
     )
      
     lazy val baseCases: PackratParser[BaseCases] = ( 
-       "TODO" ^^ {case _ => BaseCases(List.empty)}
+        rep1sep(baseCase, ",") ^^ {case rules => BaseCases(rules)}
+        | failure("must provide 1 base case!")
     )
-     
+    
+    lazy val baseCase: PackratParser[BaseCase] = (
+        rep1sep(clause, "&&") ^^ {case clauses => BaseCase(clauses)}
+        | failure("must have at least one clause in a base case")
+    )
+    
+    lazy val clause: PackratParser[Clause] = (
+        variable~comparator~value ^^ {case variable~comparator~value => Clause(variable, comparator, value)}   
+    )
+    
+    lazy val variable: PackratParser[Variable] = (
+        "i" ^^ {case "i" => iVal()}
+        | "j" ^^ {case "j" => jVal()}
+    )
+    
+    lazy val comparator: PackratParser[Comparator] = (
+        "<" ^^ {case "<" => <()}
+        | "<=" ^^ {case "<=" => <=()}
+        | ">" ^^ {case ">" => >()}
+        | ">=" ^^ {case ">=" => >=()}
+        | "==" ^^ {case "==" => equal()}
+        | failure("Unrecognized comparator")
+    )
+    
+    lazy val value: PackratParser[Value] = (
+        variable ^^ {case variable => variable}
+        | "n" ^^ {case "n" => n()}
+        | number ^^ {case number => intValue(number)}
+    )
+    
     //lazy val baseCase: PackratParser[Cell] = ()
      
     lazy val recursiveCases: PackratParser[Dependencies] = (

@@ -1,9 +1,10 @@
 def function(i):
-	if (TODO):
+	if (i == 0):
 		return
 
 	else consider:
 		function(0),
-		function(1,2,3),
+		function(1),
 		function(i-1),
-		function(0) ~ function(i-1)
+		function(1) ~ function(i-1)
+

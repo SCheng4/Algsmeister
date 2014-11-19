@@ -9,7 +9,25 @@ case class TwoD() extends Dimension
 // extends to 3D DP tables
 //case class ThreeD() extends Dimension
 
-case class BaseCases(baseCase: List[Cell]) extends AST
+case class BaseCases(baseCases: List[BaseCase]) extends AST
+case class BaseCase(clauses: List[Clause]) extends AST
+case class Clause(variable: Variable, comparator: Comparator, value: Value) extends AST
+
+sealed abstract class Value extends AST
+case class intValue(value: Int) extends Value
+case class n() extends Value
+
+sealed abstract class Variable extends Value
+case class jVal() extends Variable
+case class iVal() extends Variable
+
+sealed abstract class Comparator
+case class <() extends Comparator
+case class <=() extends Comparator
+case class equal() extends Comparator
+case class >() extends Comparator
+case class >=() extends Comparator
+
 case class Dependencies(dependencies: List[Dependency]) extends AST
 
 sealed abstract class Cell extends AST

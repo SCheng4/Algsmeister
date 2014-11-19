@@ -2,7 +2,7 @@ package algsmeister
 
 import algsmeister.ir._
 
-package object semantics {
+package object semantics extends App {
     
     val TABLE_SIZE = 10;
     
@@ -10,7 +10,8 @@ package object semantics {
 		ast match {
 		case Program(dimension, baseCases, dependencies) => {
 			val DPTable = evalDimension(dimension);
-			val graph = generateGraph(dimension, baseCases, dependencies)
+			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
+			val graph = generateGraph(dimension, evaluatedBaseCases, dependencies)
 			println(graph)
 			println(tsort(graph))
 		}
@@ -27,12 +28,72 @@ package object semantics {
 		}
 	}
 	
-	def generateGraph(dimension: Dimension, baseCases: BaseCases, dependency: Dependencies): Traversable[(Cell, Cell)] = {
+	def evalBaseCases(dimension: Dimension, baseCases: BaseCases): List[Cell] = {
+		baseCases.baseCases.foldLeft(List[Cell]())((list, baseCase) => {
+		    val evaluated = evalBaseCase(dimension, baseCase)
+		    if (evaluated.size == 0) sys.error("Unsatisfiable base case condition found")
+		    else list ::: evalBaseCase(dimension, baseCase)
+		})
+	}
+	
+	def evalBaseCase(dimension: Dimension, baseCase: BaseCase): List[Cell] = {
+	    dimension match {
+	        case OneD() => {
+	            (0 to TABLE_SIZE - 1).toList.foldLeft(List[Cell]())((list, i) => {
+	                val cell = OneDCell(i)
+	                val evaluation = baseCase.clauses.foldLeft(true)((bool, clause) => {
+	                	clause.variable match {
+	                	    case iVal() => {evalClause(cell, clause) && true}
+	                	    case jVal() => {sys.error("Incorrectly formatted basecase")}
+	                	}
+	                })
+	                
+	                if (evaluation) list ::: List(cell) else list
+	            })
+	        }
+	        
+	        case TwoD() => {
+	            sys.error("implement 2D stuff here")
+	        }
+	    }
+	}
+	
+	def evalClause(cell: Cell, clause: Clause): Boolean = {
+	    (cell, clause.variable) match {
+	        case (OneDCell(i), iVal()) => {
+	            val condition = clause.value match {
+	                case intValue(k) => k
+	                case n() => TABLE_SIZE
+	                case iVal() => sys.error("cannot use same value on both side of base case condition!")
+	                case jVal() => sys.error("invalid condition value for 1D function")
+	            }
+	            
+	            clause.comparator match {
+	                case <() => {i < condition}
+	                case >() => {i > condition}
+	                case <=() => {i <= condition}
+	                case >=() => {i >= condition}
+	                case equal() => {i == condition}
+	            }
+	        }
+	        
+	        case (TwoDCell(i, j), _) => {
+	            // TODO: implement 2D baseCase evaluations
+	            sys.error("2D baseCase evaluations not yet implemented")
+	        }
+	        
+	        case _ => {
+	            sys.error("base case clause do not match dimension of the DP table")
+	        }
+	    }
+	}
+	
+	def generateGraph(dimension: Dimension, baseCases: List[Cell], dependency: Dependencies): Traversable[(Cell, Cell)] = {
 		dimension match {
 			case OneD() => {
 				(0 to TABLE_SIZE - 1).toList.foldLeft(List[(Cell, Cell)]())((list, i) => {
       				val cell = OneDCell(i)
-      				if (!baseCases.baseCase.contains(cell)) list ::: generateEdgesForCell(cell, dependency)
+      				if (!baseCases.contains(cell)) list ::: generateEdgesForCell(cell, dependency)
       				else list
       					//graph = graph ::: generateEdges(cell, dependency)
       			})
@@ -75,19 +136,6 @@ package object semantics {
 			}}
 		)
 	}
-	
-	
-	def evalBaseCases(dpTable: DPTable, baseCases: BaseCases): DPTable = {
-		dpTable match {
-			case OneDTable(table) => {
-				dpTable
-			}
-			
-			case TwoDTable(table) => {
-				dpTable
-			}
-		}
-	}
 
 	class DPTable()
 	
@@ -116,10 +164,6 @@ package object semantics {
 	    tsort(toPred, Seq())
 	}
 
-	//evalProgram(Program(OneD(), BaseCases(List(OneDCell(0))), Dependencies(List(Dependency(OneDIndices(relativeIndex(-1)), OneDIndices(relativeIndex(-1)))))))
-	//evalProgram(Program(OneD(), BaseCases(List(OneDCell(0), OneDCell(1))), Dependencies(List(Dependency(OneDIndices(AbsIndex(0)), OneDIndices(RelativeIndex(-1)))))))
-
-	
-	//println(generateEdges(OneDCell(4), Dependencies(List(OneDDep(-1), OneDDep(10), OneDDep(-10)))))
-	//evalProgram(Program(TwoD(), BaseCase(List()), Dependencies(List())))
+	evalProgram(Program(OneD(),BaseCases(List(BaseCase(List(Clause(iVal(),equal(),intValue(0)))))),Dependencies(List(Dependency(OneDIndices(AbsIndex(0)),OneDIndices(AbsIndex(0))), Dependency(OneDIndices(RelativeIndex(-1)),OneDIndices(RelativeIndex(-1))), Dependency(OneDIndices(AbsIndex(1)),OneDIndices(RelativeIndex(-1))))))
+)
 }
