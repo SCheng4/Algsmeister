@@ -16,42 +16,53 @@ package object semantics {
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
 			val graph = generateGraph(dimension, evaluatedBaseCases, dependencies)
 			val orderedCells = tsort(graph).toList
-			val DPTable = fillInTable(dimension, orderedCells)
+			val DPTable = fillInTable(dimension, evaluatedBaseCases, orderedCells)
 			
+			//println(ast)
+			println(evaluatedBaseCases)
 			//println(graph)
 			println(orderedCells)
+			printDPTable(DPTable)
 		}
 		case _ => {
 			throw new MatchError("Malformed program.");
 			}
 		}
 	}
-
-	def evalDimension(dim: Dimension): DPTable = {
-		dim match {
-			case OneD() => new OneDTable(new Array[Int](TABLE_SIZE))
-			case TwoD() => new TwoDTable(Array.ofDim[Int](TABLE_SIZE, TABLE_SIZE))
-		}
-	}
 	
-	def fillInTable(dim: Dimension, cells: List[Cell]): DPTable = {
+	def fillInTable(dim: Dimension, baseCases: List[Cell], cells: List[Cell]): DPTable = {
 	    dim match {
 	        case OneD() => {
 	            val table = new OneDTable(new Array[Int](TABLE_SIZE))
-	            var x = 0;
+	            var k = 1
 	            for (x <- 0 until cells.length) {
 	                val cell = cells(x)
 	                cell match {
-	                    case OneDCell(i) => {table.table(i) = x}
+	                    case OneDCell(i) => {
+	                        if (!baseCases.contains(cell)) {table.table(i) = k; k += 1}
+	                    }
 	                    case TwoDCell(i, j) => sys.error("OneDCell expected.")
 	                }
 	            }
-	            for ( x <- table.table ) {
-	            	println( x )
-	            	}
 	            table
 	        }
 	        case TwoD() => new TwoDTable(Array.ofDim[Int](TABLE_SIZE, TABLE_SIZE)) // TODO
+	    }
+	}
+	
+	def printDPTable(table: DPTable): Unit = {
+	    table match {
+	        case OneDTable(cells) => {
+	            println{"+---+---+---+---+---+---+---+---+---+---+"}
+	            print("|")
+	            for (i <- 0 until cells.length) {
+	                print(" " + cells(i) + " |")
+	            }
+	            println{"\n+---+---+---+---+---+---+---+---+---+---+"}
+	        }
+	        
+	        case TwoDTable(cells) => { //TODO 
+	        }
 	    }
 	}
 	
@@ -89,8 +100,8 @@ package object semantics {
 	    (cell, clause.variable) match {
 	        case (OneDCell(i), iVal()) => {
 	            val condition = clause.value match {
-	                case intValue(k) => k
-	                case n() => TABLE_SIZE
+	                case intValue(k) => k - 1 // convert into an index
+	                case n() => TABLE_SIZE - 1
 	                case iVal() => sys.error("cannot use same value on both side of base case condition!")
 	                case jVal() => sys.error("invalid condition value for 1D function")
 	            }

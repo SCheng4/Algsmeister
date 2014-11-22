@@ -17,8 +17,7 @@ object Algsmeister extends App {
 
     parsed match {
         case e: funcParser.NoSuccess => println(e)
-        case _ => println(parsed.get)
+        case _ => {evalProgram(parsed.get)}
     }
-    val evaluated = evalProgram(parsed.get)
-
 }
+
