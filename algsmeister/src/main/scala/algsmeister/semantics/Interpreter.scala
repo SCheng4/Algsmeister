@@ -13,15 +13,14 @@ package object semantics {
 	def evalProgram(ast: AST): Unit = {
 		ast match {
 		case Program(dimension, baseCases, dependencies) => {
+		    //println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
+			//println(evaluatedBaseCases)
 			val graph = generateGraph(dimension, evaluatedBaseCases, dependencies)
-			val orderedCells = tsort(graph).toList
-			val DPTable = fillInTable(dimension, evaluatedBaseCases, orderedCells)
-			
-			//println(ast)
-			println(evaluatedBaseCases)
 			//println(graph)
-			println(orderedCells)
+			val orderedCells = tsort(graph).toList
+			//println(orderedCells)
+			val DPTable = fillInTable(dimension, evaluatedBaseCases, orderedCells)
 			printDPTable(DPTable)
 		}
 		case _ => {
@@ -53,6 +52,8 @@ package object semantics {
 	def printDPTable(table: DPTable): Unit = {
 	    table match {
 	        case OneDTable(cells) => {
+	            println("The DP table has dimension 1 x n.")
+	            printProgramInfo()
 	            println{"+---+---+---+---+---+---+---+---+---+---+"}
 	            print("|")
 	            for (i <- 0 until cells.length) {
@@ -64,6 +65,12 @@ package object semantics {
 	        case TwoDTable(cells) => { //TODO 
 	        }
 	    }
+	}
+	
+	def printProgramInfo(): Unit = {
+		println("These cells labelled with 0 are the base cases and can be filled in for free.")
+	    println("The other numbers indicate one order in which the remaining cells can be filled in.")
+	    println("(Note that there are frequently more than one order to fill the DP table.)")
 	}
 	
 	def evalBaseCases(dimension: Dimension, baseCases: BaseCases): List[Cell] = {
@@ -100,7 +107,7 @@ package object semantics {
 	    (cell, clause.variable) match {
 	        case (OneDCell(i), iVal()) => {
 	            val condition = clause.value match {
-	                case intValue(k) => k - 1 // convert into an index
+	                case intValue(k) => k
 	                case n() => TABLE_SIZE - 1
 	                case iVal() => sys.error("cannot use same value on both side of base case condition!")
 	                case jVal() => sys.error("invalid condition value for 1D function")
@@ -158,6 +165,8 @@ package object semantics {
 				        case AbsIndex(index) => index
 				        case RelativeIndex(offset) => i + offset
 				    }
+				    
+				    
 				    
 				    list ::: (startIndex to endIndex).toList.foldLeft(List[(Cell, Cell)]())((list, i) => {
 				        if (i >= 0 && i < TABLE_SIZE) (list :+ (OneDCell(i), cell))

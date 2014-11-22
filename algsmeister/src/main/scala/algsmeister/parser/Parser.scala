@@ -100,7 +100,7 @@ object funcParser extends JavaTokenParsers with PackratParsers {
         | "j"~"-"~number ^^ {case "j"~"-"~num => RelativeIndex(-num)}
     )
     
-    def number: Parser[Int] = wholeNumber ^^ {s => (s.toInt)}
-
-    
+    def number: Parser[Int] = wholeNumber ^^ {
+        s => if (s.toInt < -9 || s.toInt > 9) sys.error("Largest DP dimension supported is 10.")
+        	 else (s.toInt)}
 }
