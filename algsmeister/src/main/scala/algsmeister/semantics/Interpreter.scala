@@ -15,11 +15,11 @@ package object semantics {
 		case Program(dimension, baseCases, dependencies) => {
 		    //println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
-			//println(evaluatedBaseCases)
+			println(evaluatedBaseCases)
 			val graph = generateGraph(dimension, evaluatedBaseCases, dependencies)
 			//println(graph)
 			val orderedCells = tsort(graph).toList
-			//println(orderedCells)
+			println(orderedCells)
 			val DPTable = fillInTable(dimension, evaluatedBaseCases, orderedCells)
 			printDPTable(DPTable)
 		}
@@ -88,7 +88,7 @@ package object semantics {
 	                val cell = OneDCell(i)
 	                val evaluation = baseCase.clauses.foldLeft(true)((bool, clause) => {
 	                	clause.variable match {
-	                	    case iVal() => {evalClause(cell, clause) && true}
+	                	    case iVal() => {evalClause(cell, clause) && bool}
 	                	    case jVal() => {sys.error("Incorrectly formatted basecase")}
 	                	}
 	                })
