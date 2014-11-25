@@ -15,11 +15,11 @@ package object semantics {
 		case Program(dimension, baseCases, dependencies) => {
 		    //println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
-			println(evaluatedBaseCases)
+			//println(evaluatedBaseCases)
 			val graph = generateGraph(dimension, evaluatedBaseCases, dependencies)
 			//println(graph)
 			val orderedCells = tsort(graph).toList
-			println(orderedCells)
+			//println(orderedCells)
 			val DPTable = fillInTable(dimension, evaluatedBaseCases, orderedCells)
 			printDPTable(DPTable)
 		}
@@ -165,8 +165,6 @@ package object semantics {
 				        case AbsIndex(index) => index
 				        case RelativeIndex(offset) => i + offset
 				    }
-				    
-				    
 				    
 				    list ::: (startIndex to endIndex).toList.foldLeft(List[(Cell, Cell)]())((list, i) => {
 				        if (i >= 0 && i < TABLE_SIZE) (list :+ (OneDCell(i), cell))
