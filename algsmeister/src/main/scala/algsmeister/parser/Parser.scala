@@ -67,35 +67,24 @@ object funcParser extends JavaTokenParsers with PackratParsers {
     )
      
     lazy val recursiveCase: PackratParser[Dependency] = (
-        beginIndices~"~"~endIndices ^^ {case beginIndices~"~"~endIndices => Dependency(beginIndices, endIndices)}
-        | beginIndices ^^ {case beginIndices => Dependency(beginIndices, beginIndices)}
+        indices~"~"~indices ^^ {case beginIndices~"~"~endIndices => Dependency(beginIndices, endIndices)}
+        | indices ^^ {case beginIndices => Dependency(beginIndices, beginIndices)}
         | failure("Incorrectly formatted dependency")
     )
     
-    lazy val beginIndices: PackratParser[Indices] = (
-        "function"~"("~rep1sep(index, ",")~")" ^^ {
-            case "function"~"("~index~")" =>
-                if (index.length == 1) OneDIndices(index(0))
-                else if (index.length == 2) TwoDIndices(index(0), index(1))
-                // add 3D case here if needed
-                else throw new MatchError("Incorrectly formatted recursive call") 
-        }
+    lazy val indices: PackratParser[Indices] = (
+        "function"~"("~iIndex~","~jIndex~")" ^^ {case "function"~"("~iIndex~","~jIndex~")" => TwoDIndices(iIndex, jIndex)}
+        | "function"~"("~iIndex~")" ^^ {case "function"~"("~iIndex~")" => OneDIndices(iIndex)}
     )
     
-    lazy val endIndices: PackratParser[Indices] = (
-        "function"~"("~rep1sep(index, ",")~")" ^^ {
-            case "function"~"("~index~")" =>
-                if (index.length == 1) OneDIndices(index(0))
-                else if (index.length == 2) TwoDIndices(index(0), index(1))
-                // add 3D case here if needed
-                else throw new MatchError("Incorrectly formatted recursive call") 
-        }
-    )
-    
-    lazy val index: PackratParser[Index] = (
+    lazy val iIndex: PackratParser[Index] = (
         number ^^ {case num => AbsIndex(num)}
         | "i"~"+"~number ^^ {case "i"~"+"~num => RelativeIndex(num)}
         | "i"~"-"~number ^^ {case "i"~"-"~num => RelativeIndex(-num)}
+    )
+    
+    lazy val jIndex: PackratParser[Index] = (
+        number ^^ {case num => AbsIndex(num)}
         | "j"~"+"~number ^^ {case "j"~"+"~num => RelativeIndex(num)}
         | "j"~"-"~number ^^ {case "j"~"-"~num => RelativeIndex(-num)}
     )
