@@ -15,7 +15,7 @@ package object semantics {
 		case Program(dimension, baseCases, dependencies) => {
 		    //println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
-			//println(evaluatedBaseCases)
+			println(evaluatedBaseCases)
 			val graph = generateGraph(dimension, evaluatedBaseCases, dependencies)
 			//println(graph)
 			val orderedCells = tsort(graph).toList
@@ -98,10 +98,15 @@ package object semantics {
 	        }
 	        
 	        case TwoD() => {
-	            sys.error("implement 2D stuff here")
-	        }
-	    }
-	}
+	            (0 to (TABLE_SIZE * TABLE_SIZE - 1)).toList.foldLeft(List[Cell]())((list, i) => {
+	                val cell = TwoDCell(i / TABLE_SIZE, i % TABLE_SIZE)
+	                val evaluation = baseCase.clauses.foldLeft(true)((bool, clause) => {
+	                	evalClause(cell, clause) && bool
+	                })
+	                
+	                if (evaluation) list ::: List(cell) else list
+	            })     
+	}}}
 	
 	def evalClause(cell: Cell, clause: Clause): Boolean = {
 	    (cell, clause.variable) match {
@@ -122,9 +127,39 @@ package object semantics {
 	            }
 	        }
 	        
-	        case (TwoDCell(i, j), _) => {
+	        case (TwoDCell(i, j), iVal()) => {
 	            // TODO: implement 2D baseCase evaluations
-	            sys.error("2D baseCase evaluations not yet implemented")
+	        	val condition = clause.value match {
+	                case intValue(k) => k
+	                case n() => TABLE_SIZE - 1
+	                case iVal() => sys.error("cannot use same value on both side of base case condition!")
+	                case jVal() => j
+	            }
+	            
+	            clause.comparator match {
+	                case isL() => {i < condition}
+	                case isG() => {i > condition}
+	                case isLE() => {i <= condition}
+	                case isGE() => {i >= condition}
+	                case isE() => {i == condition}
+	            }
+	        }
+	        
+	        case (TwoDCell(i, j), jVal()) => {
+	        	val condition = clause.value match {
+	                case intValue(k) => k
+	                case n() => TABLE_SIZE - 1
+	                case iVal() => i
+	                case jVal() => sys.error("cannot use same value on both side of base case condition!")
+	            }
+	            
+	            clause.comparator match {
+	                case isL() => {j < condition}
+	                case isG() => {j > condition}
+	                case isLE() => {j <= condition}
+	                case isGE() => {j >= condition}
+	                case isE() => {j == condition}
+	            }
 	        }
 	        
 	        case _ => {
