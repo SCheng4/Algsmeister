@@ -13,11 +13,12 @@ package object semantics {
 	class Runtime()
 	case class constant() extends Runtime
 	case class linear() extends Runtime
+	case class quad() extends Runtime
     
 	def evalProgram(ast: AST): Unit = {
 		ast match {
 		case Program(dimension, baseCases, dependencies) => {
-		    println(getRuntime(dimension, dependencies))
+		    printRuntime(dimension, dependencies)
 		    //println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
 			//println(evaluatedBaseCases)
@@ -26,7 +27,7 @@ package object semantics {
 			val orderedCells = tsort(graph).toList
 			//println(orderedCells)
 			val DPTable = fillInTable(dimension, evaluatedBaseCases, orderedCells)
-			//printDPTable(DPTable)
+			printDPTable(DPTable)
 		}
 		case _ => {
 			throw new MatchError("Malformed program.");
@@ -34,26 +35,50 @@ package object semantics {
 		}
 	}
 	
+    def printRuntime(dim: Dimension, dep: Dependencies) = {
+        val runtime = getRuntime(dim, dep)
+        val actualRuntime = dim match {
+            case OneD() => if (runtime == constant()) "O(n)" else "O(n^2)"
+            case TwoD() => if (runtime == constant()) "O(n^2)" else if (runtime == linear()) "O(n^3)" else "O(n^4)"
+        }
+        println("It takes " + actualRuntime + " to fill out the DP table")
+    }
+    
     def getRuntime(dim: Dimension, dep: Dependencies): Runtime = {
         dim match {
             case OneD() => {
-                val isConstant = dep.dependencies.foldLeft(true)((bool, dependency) => {
+                var isLinear = false
+                for (dependency <- dep.dependencies) {
                     (dependency.start, dependency.end) match {
                         case (OneDIndices(i), OneDIndices(j)) => {
-                            (i, j) match {
-                                case (RelativeIndex(x), AbsIndex(y)) => false
-                                case (AbsIndex(x), RelativeIndex(y)) => false
-                                case (_, _) => bool
-                            }}}})
-                if (isConstant) new constant() else new linear()
+                            if (compareIndices(i,j)) isLinear = true
+                        }
+                    	case (_, _) => {sys.error("Incorrectly formatted dependencies")}
+                    }}
+                if (isLinear) new linear() else new constant()
             }
             
             case TwoD() => {
-                new constant()
-            }
-        
+                var isLinear = false
+                var isQuad = false
+                for (dependency <- dep.dependencies) {
+                    (dependency.start, dependency.end) match {
+                        case (TwoDIndices(i1, j1), TwoDIndices(i2, j2)) => {
+                            if (compareIndices(i1, i2) && compareIndices(j1, j2)) isQuad = true
+                            else if (compareIndices(i1, i2) || compareIndices(j1, j2)) isLinear = true
+                        }
+                        case (_, _) => {sys.error("Incorrectly formatted dependencies")}
+                    }
+                }
+                if (isQuad) new quad() else if (isLinear) new linear() else new constant() 
+    }}}
+    
+    def compareIndices(i: Index, j: Index): Boolean = {
+        (i, j) match {
+            case (RelativeIndex(_), AbsIndex(_)) => true
+            case (AbsIndex(_), RelativeIndex(_)) => true
+            case (_, _) => false
         }
-        
     }
     
 	def fillInTable(dim: Dimension, baseCases: List[Cell], cells: List[Cell]): DPTable = {
