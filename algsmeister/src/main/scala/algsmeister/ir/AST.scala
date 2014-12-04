@@ -48,6 +48,3 @@ case class RelativeIndex(offset: Int) extends Index
 
 // extends to 3D DP tables
 //case class ThreeDDep(sliceOffset: Int, rowOffset: Int, colOffset: Int) extends Dependency
-
-// extends to non-constant numbers of dependencies
-// case class cellsAbove() extends Dependency

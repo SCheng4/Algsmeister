@@ -9,10 +9,15 @@ package object semantics {
     class DPTable()
 	case class OneDTable(table: Array[Int]) extends DPTable
 	case class TwoDTable(table: Array[Array[Int]]) extends DPTable
+	
+	class Runtime()
+	case class constant() extends Runtime
+	case class linear() extends Runtime
     
 	def evalProgram(ast: AST): Unit = {
 		ast match {
 		case Program(dimension, baseCases, dependencies) => {
+		    println(getRuntime(dimension, dependencies))
 		    //println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
 			//println(evaluatedBaseCases)
@@ -21,14 +26,35 @@ package object semantics {
 			val orderedCells = tsort(graph).toList
 			//println(orderedCells)
 			val DPTable = fillInTable(dimension, evaluatedBaseCases, orderedCells)
-			printDPTable(DPTable)
+			//printDPTable(DPTable)
 		}
 		case _ => {
 			throw new MatchError("Malformed program.");
 			}
 		}
 	}
-
+	
+    def getRuntime(dim: Dimension, dep: Dependencies): Runtime = {
+        dim match {
+            case OneD() => {
+                val isConstant = dep.dependencies.foldLeft(true)((bool, dependency) => {
+                    (dependency.start, dependency.end) match {
+                        case (OneDIndices(i), OneDIndices(j)) => {
+                            (i, j) match {
+                                case (RelativeIndex(x), AbsIndex(y)) => false
+                                case (AbsIndex(x), RelativeIndex(y)) => false
+                                case (_, _) => bool
+                            }}}})
+                if (isConstant) new constant() else new linear()
+            }
+            
+            case TwoD() => {
+                new constant()
+            }
+        
+        }
+        
+    }
     
 	def fillInTable(dim: Dimension, baseCases: List[Cell], cells: List[Cell]): DPTable = {
 	    dim match {
