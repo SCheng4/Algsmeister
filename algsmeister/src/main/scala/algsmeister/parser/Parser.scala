@@ -81,12 +81,14 @@ object funcParser extends JavaTokenParsers with PackratParsers {
         number ^^ {case num => AbsIndex(num)}
         | "i"~"+"~number ^^ {case "i"~"+"~num => RelativeIndex(num)}
         | "i"~"-"~number ^^ {case "i"~"-"~num => RelativeIndex(-num)}
+        | "i" ^^ {case "i" => RelativeIndex(0)}
     )
     
     lazy val jIndex: PackratParser[Index] = (
         number ^^ {case num => AbsIndex(num)}
         | "j"~"+"~number ^^ {case "j"~"+"~num => RelativeIndex(num)}
         | "j"~"-"~number ^^ {case "j"~"-"~num => RelativeIndex(-num)}
+        | "j" ^^ {case "j" => RelativeIndex(0)}
     )
     
     def number: Parser[Int] = wholeNumber ^^ {

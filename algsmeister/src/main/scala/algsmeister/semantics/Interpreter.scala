@@ -15,7 +15,7 @@ package object semantics {
 		case Program(dimension, baseCases, dependencies) => {
 		    //println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
-			println(evaluatedBaseCases)
+			//println(evaluatedBaseCases)
 			val graph = generateGraph(dimension, evaluatedBaseCases, dependencies)
 			//println(graph)
 			val orderedCells = tsort(graph).toList
@@ -28,7 +28,8 @@ package object semantics {
 			}
 		}
 	}
-	
+
+    
 	def fillInTable(dim: Dimension, baseCases: List[Cell], cells: List[Cell]): DPTable = {
 	    dim match {
 	        case OneD() => {
@@ -45,7 +46,20 @@ package object semantics {
 	            }
 	            table
 	        }
-	        case TwoD() => new TwoDTable(Array.ofDim[Int](TABLE_SIZE, TABLE_SIZE)) // TODO
+	        case TwoD() => {
+	            val table = new TwoDTable(Array.ofDim[Int](TABLE_SIZE, TABLE_SIZE))
+	            var k = 1
+	            for (x <- 0 until cells.length) {
+	                val cell = cells(x)
+	                cell match {
+	                    case TwoDCell(i, j) => {
+	                        if (!baseCases.contains(cell)) {table.table(i)(j) = k; k += 1}
+	                    }
+	                    case OneDCell(i) => sys.error("TwoDCell expected.")
+	                }
+	            }
+	            table
+	        }
 	    }
 	}
 	
@@ -53,7 +67,6 @@ package object semantics {
 	    table match {
 	        case OneDTable(cells) => {
 	            println("The DP table has dimension 1 x n.")
-	            printProgramInfo()
 	            println{"+---+---+---+---+---+---+---+---+---+---+"}
 	            print("|")
 	            for (i <- 0 until cells.length) {
@@ -62,7 +75,18 @@ package object semantics {
 	            println{"\n+---+---+---+---+---+---+---+---+---+---+"}
 	        }
 	        
-	        case TwoDTable(cells) => { //TODO 
+	        case TwoDTable(cells) => {
+	            println("The DP table has dimension n x n.")
+	            println("+---+---+---+---+---+---+---+---+---+---+")
+	            
+	            for (i <- 0 until (TABLE_SIZE)) {
+	                print("|")
+	                for (j <- 0 until (TABLE_SIZE)) {
+	                    if (cells(i)(j) < 10) print(" " + cells(i)(j) + " |")
+	                    else print(" " + cells(i)(j) + "|")
+	                }
+	                println("\n+---+---+---+---+---+---+---+---+---+---+")
+	            }
 	        }
 	    }
 	}
@@ -175,16 +199,16 @@ package object semantics {
       				val cell = OneDCell(i)
       				if (!baseCases.contains(cell)) list ::: generateEdgesForCell(cell, dependency)
       				else list
-      					//graph = graph ::: generateEdges(cell, dependency)
       			})
 			}
 			
 			case TwoD() => {
-				// TODO placeholder
-				Seq((OneDCell(1), OneDCell(1)))
-			}		
-		}
-	}
+				(0 to (TABLE_SIZE * TABLE_SIZE - 1)).toList.foldLeft(List[(Cell, Cell)]())((list, i) => {
+	                val cell = TwoDCell(i / TABLE_SIZE, i % TABLE_SIZE)
+	                if (!baseCases.contains(cell)) list ::: generateEdgesForCell(cell, dependency)
+	                else list
+				})	
+	}}}
 	
 	def generateEdgesForCell(cell: Cell, dependency: Dependencies): List[(Cell, Cell)] = {
 		dependency.dependencies.foldLeft(List[(Cell, Cell)]())((list, dep) => {
@@ -201,16 +225,45 @@ package object semantics {
 				        case RelativeIndex(offset) => i + offset
 				    }
 				    
-				    list ::: (startIndex to endIndex).toList.foldLeft(List[(Cell, Cell)]())((list, i) => {
-				        if (i >= 0 && i < TABLE_SIZE) (list :+ (OneDCell(i), cell))
+				    list ::: (startIndex to endIndex).toList.foldLeft(List[(Cell, Cell)]())((list, index) => {
+				        if (index >= 0 && index < TABLE_SIZE) (list :+ (OneDCell(index), cell))
 				        else sys.error("The DP table cannot be filled out. Check your base cases and dependencies!")
 				    })
 				    
 				}
-//				case (TwoDCell(i, j), TwoDDep(ioffset, joffset)) => {
-//					// TODO: placeholder
-//					List((OneDCell(1), OneDCell(1)))
-//				}
+				
+				case (TwoDCell(i, j), TwoDIndices(iStart, jStart), TwoDIndices(iEnd, jEnd)) => {
+					
+				    val iStartIndex = iStart match {
+				        case AbsIndex(index) => index
+				        case RelativeIndex(offset) => i + offset
+				    }
+				    
+				    val iEndIndex = iEnd match {
+				        case AbsIndex(index) => index
+				        case RelativeIndex(offset) => i + offset
+				    }
+					
+				    val jStartIndex = jStart match {
+				        case AbsIndex(index) => index
+				        case RelativeIndex(offset) => j + offset
+				    }
+				    
+				    val jEndIndex = jEnd match {
+				        case AbsIndex(index) => index
+				        case RelativeIndex(offset) => j + offset
+				    }
+				    
+				    val start = iStartIndex * TABLE_SIZE + jStartIndex
+				    val end = iEndIndex * TABLE_SIZE + jEndIndex
+				    
+				    list ::: (start to end).toList.foldLeft(List[(Cell, Cell)]())((list, index) => {
+				        val iIndex = index / TABLE_SIZE
+				        val jIndex = index % TABLE_SIZE
+				        if (iIndex >= 0 && iIndex < TABLE_SIZE && jIndex >= 0 && jIndex < TABLE_SIZE)
+				            (list :+ (TwoDCell(iIndex, jIndex), cell))
+				        else sys.error("The DP table cannot be filled out. Check your base cases and dependencies!")
+				    })				}
 				case _ => throw new MatchError("Mismatched parameters.");
 			
 			}}
