@@ -17,7 +17,7 @@ package object semantics {
     
 	def evalProgram(ast: AST): Unit = {
 		ast match {
-		case Program(dimension, baseCases, dependencies) => {
+		case Program(dimension, size, baseCases, dependencies) => {
 		    //println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
 			//println(evaluatedBaseCases)

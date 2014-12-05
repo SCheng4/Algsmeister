@@ -8,31 +8,40 @@ object funcParser extends JavaTokenParsers with PackratParsers {
     def apply(s: String): ParseResult[AST] = parseAll(program, s)
     
     lazy val program: PackratParser[Program] =
-    	("def"~"function"~arguments~":"~
+    	(opt(tableSize)~"def"~"function"~arguments~":"~
       		"if"~"("~baseCases~")"~":"~"return"~
       		"else"~"consider"~":"~
       			recursiveCases
-      	^^ {case "def"~"function"~arguments~":"~
+      	^^ {case tableSize~"def"~"function"~arguments~":"~
       			     "if"~"("~baseCases~")"~":"~"return"~
       			     "else"~"consider"~":"~
       			     	recursiveCases
-      			 => Program(arguments, baseCases, recursiveCases)}
+      			 => {val size = tableSize match {case Some(parsedSize) => parsedSize case _ => DefaultSize()}
+      			     Program(arguments, size, baseCases, recursiveCases)}
+      			 }
     	| failure("Invalid syntax")
     	)
     
+    lazy val tableSize: PackratParser[TableSize] = (
+        ("i"~"<="~number~","~"j"~"<="~number) ^^ {case ("i"~"<="~iMax~","~"j"~"<="~jMax) => TwoDSize(iMax, jMax)}
+        | ("i"~"<="~number) ^^ {case ("i"~"<="~number) => OneDSize(number)}
+        | failure("Invalid syntax in custom table size.")
+    )
+    	
     lazy val arguments: PackratParser[Dimension] = (
           "("~"i"~")" ^^ {case "("~"i"~")" => OneD()}
-        | "("~"i"~","~"j"~")" ^^ {case "("~"i"~","~"j"~")" => TwoD()} 
+        | "("~"i"~","~"j"~")" ^^ {case "("~"i"~","~"j"~")" => TwoD()}
+        | failure("Function arguments must be i and j.")
     )
      
     lazy val baseCases: PackratParser[BaseCases] = ( 
         rep1sep(baseCase, ",") ^^ {case rules => BaseCases(rules)}
-        | failure("must provide 1 base case!")
+        | failure("Must provide 1 base case!")
     )
     
     lazy val baseCase: PackratParser[BaseCase] = (
         rep1sep(clause, "&&") ^^ {case clauses => BaseCase(clauses)}
-        | failure("must have at least one clause in a base case")
+        | failure("Must have at least one clause in a base case")
     )
     
     lazy val clause: PackratParser[Clause] = (
@@ -92,6 +101,5 @@ object funcParser extends JavaTokenParsers with PackratParsers {
     )
     
     def number: Parser[Int] = wholeNumber ^^ {
-        s => if (s.toInt < -9 || s.toInt > 9) sys.error("Largest DP dimension supported is 10.")
-        	 else (s.toInt)}
+        s => (s.toInt)}
 }
