@@ -50,7 +50,7 @@ object funcParser extends JavaTokenParsers with PackratParsers {
         | "<" ^^ {case "<" => isL()}
         | ">" ^^ {case ">" => isG()}
         | "==" ^^ {case "==" => isE()}
-        | failure("Unrecognized comparator")
+        | failure("A base case clause must have at least one recognized parameters (<, <=, ==, >=, or >).")
     )
     
     lazy val value: PackratParser[Value] = (

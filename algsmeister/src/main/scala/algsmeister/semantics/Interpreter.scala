@@ -18,7 +18,6 @@ package object semantics {
 	def evalProgram(ast: AST): Unit = {
 		ast match {
 		case Program(dimension, baseCases, dependencies) => {
-		    printRuntime(dimension, dependencies)
 		    //println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
 			//println(evaluatedBaseCases)
@@ -28,6 +27,7 @@ package object semantics {
 			//println(orderedCells)
 			val DPTable = fillInTable(dimension, evaluatedBaseCases, orderedCells)
 			printDPTable(DPTable)
+			printRuntime(dimension, dependencies)
 		}
 		case _ => {
 			throw new MatchError("Malformed program.");
@@ -41,7 +41,8 @@ package object semantics {
             case OneD() => if (runtime == constant()) "O(n)" else "O(n^2)"
             case TwoD() => if (runtime == constant()) "O(n^2)" else if (runtime == linear()) "O(n^3)" else "O(n^4)"
         }
-        println("It takes " + actualRuntime + " to fill out the DP table")
+        val perCell = if (runtime == constant()) "O(1)" else if (runtime == linear()) "O(n)" else "O(n^2)"
+        println("It takes up to " + perCell + " time to fill out each cell in the table, and up to a total of " + actualRuntime + " to fill out the entire table")
     }
     
     def getRuntime(dim: Dimension, dep: Dependencies): Runtime = {
@@ -164,7 +165,7 @@ package object semantics {
 	                val evaluation = baseCase.clauses.foldLeft(true)((bool, clause) => {
 	                	clause.variable match {
 	                	    case iVal() => {evalClause(cell, clause) && bool}
-	                	    case jVal() => {sys.error("Incorrectly formatted basecase")}
+	                	    case jVal() => {sys.error("j is not a recognized variable in a 1D function.")}
 	                	}
 	                })
 	                
@@ -189,8 +190,8 @@ package object semantics {
 	            val condition = clause.value match {
 	                case intValue(k) => k
 	                case n() => TABLE_SIZE - 1
-	                case iVal() => sys.error("cannot use same value on both side of base case condition!")
-	                case jVal() => sys.error("invalid condition value for 1D function")
+	                case iVal() => sys.error("You cannot use same value on both side of base case condition!")
+	                case jVal() => sys.error("j is not a valid value in a 1D function")
 	            }
 	            
 	            clause.comparator match {
@@ -207,7 +208,7 @@ package object semantics {
 	        	val condition = clause.value match {
 	                case intValue(k) => k
 	                case n() => TABLE_SIZE - 1
-	                case iVal() => sys.error("cannot use same value on both side of base case condition!")
+	                case iVal() => sys.error("You cannot use same value on both side of base case condition!")
 	                case jVal() => j
 	            }
 	            
@@ -225,7 +226,7 @@ package object semantics {
 	                case intValue(k) => k
 	                case n() => TABLE_SIZE - 1
 	                case iVal() => i
-	                case jVal() => sys.error("cannot use same value on both side of base case condition!")
+	                case jVal() => sys.error("You cannot use same value on both side of base case condition!")
 	            }
 	            
 	            clause.comparator match {
@@ -238,7 +239,7 @@ package object semantics {
 	        }
 	        
 	        case _ => {
-	            sys.error("base case clause do not match dimension of the DP table")
+	            sys.error("A base case does not match dimension of the DP table")
 	        }
 	    }
 	}
@@ -278,7 +279,7 @@ package object semantics {
 				    
 				    list ::: (startIndex to endIndex).toList.foldLeft(List[(Cell, Cell)]())((list, index) => {
 				        if (index >= 0 && index < TABLE_SIZE) (list :+ (OneDCell(index), cell))
-				        else sys.error("The DP table cannot be filled out. Check your base cases and dependencies!")
+				        else sys.error("The DP table cannot be filled out: " + cell + " depends on " + OneDCell(index) + ", which is outside the bounds of the DP table.")
 				    })
 				    
 				}
@@ -313,9 +314,9 @@ package object semantics {
 				        val jIndex = index % TABLE_SIZE
 				        if (iIndex >= 0 && iIndex < TABLE_SIZE && jIndex >= 0 && jIndex < TABLE_SIZE)
 				            (list :+ (TwoDCell(iIndex, jIndex), cell))
-				        else sys.error("The DP table cannot be filled out. Check your base cases and dependencies!")
+				        else sys.error("The DP table cannot be filled out: " + cell + " depends on " + TwoDCell(iIndex, jIndex) + ", which is outside the bounds of the DP table.")
 				    })				}
-				case _ => throw new MatchError("Mismatched parameters.");
+				case _ => throw new MatchError("A recursive call has incorrect parameters.");
 			
 			}}
 		)

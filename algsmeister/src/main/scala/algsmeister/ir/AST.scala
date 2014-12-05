@@ -31,8 +31,12 @@ case class isGE() extends Comparator
 case class Dependencies(dependencies: List[Dependency]) extends AST
 
 sealed abstract class Cell extends AST
-case class OneDCell(col: Int) extends Cell
-case class TwoDCell(row: Int, col: Int) extends Cell
+case class OneDCell(col: Int) extends Cell {
+    override def toString = "cell(" + col + ")"
+}
+case class TwoDCell(row: Int, col: Int) extends Cell {
+    override def toString = "cell(" + row + ", " + col + ")"
+}
 // extends to 3D DP tables
 //case class ThreeDCell(slice: Int, row: Int, col: Int) extends Cell
 
