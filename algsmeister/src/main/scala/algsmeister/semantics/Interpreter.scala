@@ -20,12 +20,7 @@ package object semantics {
 		case Program(dimension, size, baseCases, dependencies) => {
 		    //println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
-			//println(evaluatedBaseCases)
-			val graph = generateGraph(dimension, evaluatedBaseCases, dependencies)
-			//println(graph)
-			val orderedCells = tsort(graph).toList
-			//println(orderedCells)
-			val DPTable = fillInTable(dimension, evaluatedBaseCases, orderedCells)
+			val DPTable = fillDPTable(dimension, evaluatedBaseCases, dependencies)
 			printDPTable(DPTable)
 			printRuntime(dimension, dependencies)
 		}
@@ -82,39 +77,50 @@ package object semantics {
         }
     }
     
-	def fillInTable(dim: Dimension, baseCases: List[Cell], cells: List[Cell]): DPTable = {
-	    dim match {
-	        case OneD() => {
-	            val table = new OneDTable(new Array[Int](TABLE_SIZE))
-	            var k = 1
-	            for (x <- 0 until cells.length) {
-	                val cell = cells(x)
-	                cell match {
-	                    case OneDCell(i) => {
-	                        if (!baseCases.contains(cell)) {table.table(i) = k; k += 1}
-	                    }
-	                    case TwoDCell(i, j) => sys.error("OneDCell expected.")
-	                }
-	            }
-	            table
-	        }
-	        case TwoD() => {
-	            val table = new TwoDTable(Array.ofDim[Int](TABLE_SIZE, TABLE_SIZE))
-	            var k = 1
-	            for (x <- 0 until cells.length) {
-	                val cell = cells(x)
-	                cell match {
-	                    case TwoDCell(i, j) => {
-	                        if (!baseCases.contains(cell)) {table.table(i)(j) = k; k += 1}
-	                    }
-	                    case OneDCell(i) => sys.error("TwoDCell expected.")
-	                }
-	            }
-	            table
-	        }
-	    }
-	}
-	
+    def fillDPTable(dim: Dimension, baseCases: List[Cell], dep: Dependencies): DPTable = {
+        dim match {
+            case OneD() => {
+                var table = new OneDTable(new Array[Int](TABLE_SIZE))
+                var k = 1
+                var filledCells = baseCases;
+                var unfilledCells = (0 to TABLE_SIZE - 1).toList.map(x => OneDCell(x)).filter(x => !filledCells.contains(x))
+                
+                while (unfilledCells.length > 0) {
+                	val cellsToFill = unfilledCells.filter(x => dependencyForCell(x, dep).foldLeft(true)(
+                	        (satisfied, cell) => if (filledCells.contains(cell)) satisfied else false))
+                	if (cellsToFill.length == 0) sys.error("DP table cannot be filled out.")
+                	for (cell <- cellsToFill) {
+                		table.table(cell.col) = k
+                	}
+                	filledCells = filledCells ::: cellsToFill
+                	unfilledCells = unfilledCells.filter(x => !cellsToFill.contains(x))
+                	k += 1
+                }
+                table
+            }
+            case TwoD() => {
+                val table = new TwoDTable(Array.ofDim[Int](TABLE_SIZE, TABLE_SIZE))
+                var k = 1
+                var filledCells = baseCases;
+                var unfilledCells = (0 to (TABLE_SIZE * TABLE_SIZE - 1)).toList.map(x => 
+                    TwoDCell((x/TABLE_SIZE),(x%TABLE_SIZE))).filter(x => !filledCells.contains(x))
+                
+                 while (unfilledCells.length > 0) {
+                	val cellsToFill = unfilledCells.filter(x => dependencyForCell(x, dep).foldLeft(true)(
+                	        (satisfied, cell) => if (filledCells.contains(cell)) satisfied else false))
+                	if (cellsToFill.length == 0) sys.error("DP table cannot be filled out.")
+                	for (cell <- cellsToFill) {
+                		table.table(cell.row)(cell.col) = k
+                	}
+                	filledCells = filledCells ::: cellsToFill
+                	unfilledCells = unfilledCells.filter(x => !cellsToFill.contains(x))
+                	k += 1
+                }
+                table
+            }
+        }
+    } 
+
 	def printDPTable(table: DPTable): Unit = {
 	    table match {
 	        case OneDTable(cells) => {
@@ -244,26 +250,8 @@ package object semantics {
 	    }
 	}
 	
-	def generateGraph(dimension: Dimension, baseCases: List[Cell], dependency: Dependencies): Traversable[(Cell, Cell)] = {
-		dimension match {
-			case OneD() => {
-				(0 to TABLE_SIZE - 1).toList.foldLeft(List[(Cell, Cell)]())((list, i) => {
-      				val cell = OneDCell(i)
-      				if (!baseCases.contains(cell)) list ::: generateEdgesForCell(cell, dependency)
-      				else list
-      			})
-			}
-			
-			case TwoD() => {
-				(0 to (TABLE_SIZE * TABLE_SIZE - 1)).toList.foldLeft(List[(Cell, Cell)]())((list, i) => {
-	                val cell = TwoDCell(i / TABLE_SIZE, i % TABLE_SIZE)
-	                if (!baseCases.contains(cell)) list ::: generateEdgesForCell(cell, dependency)
-	                else list
-				})	
-	}}}
-	
-	def generateEdgesForCell(cell: Cell, dependency: Dependencies): List[(Cell, Cell)] = {
-		dependency.dependencies.foldLeft(List[(Cell, Cell)]())((list, dep) => {
+	def dependencyForCell(cell: Cell, dependency: Dependencies): List[Cell] = {
+		dependency.dependencies.foldLeft(List[Cell]())((list, dep) => {
 			(cell, dep.start, dep.end) match {
 				case (OneDCell(i), OneDIndices(start), OneDIndices(end)) => {
 				    
@@ -277,8 +265,8 @@ package object semantics {
 				        case RelativeIndex(offset) => i + offset
 				    }
 				    
-				    list ::: (startIndex to endIndex).toList.foldLeft(List[(Cell, Cell)]())((list, index) => {
-				        if (index >= 0 && index < TABLE_SIZE) (list :+ (OneDCell(index), cell))
+				    list ::: (startIndex to endIndex).toList.foldLeft(List[Cell]())((list, index) => {
+				        if (index >= 0 && index < TABLE_SIZE) (list :+ OneDCell(index))
 				        else sys.error("The DP table cannot be filled out: " + cell + " depends on " + OneDCell(index) + ", which is outside the bounds of the DP table.")
 				    })
 				    
@@ -309,35 +297,21 @@ package object semantics {
 				    val start = iStartIndex * TABLE_SIZE + jStartIndex
 				    val end = iEndIndex * TABLE_SIZE + jEndIndex
 				    
-				    list ::: (start to end).toList.foldLeft(List[(Cell, Cell)]())((list, index) => {
-				        val iIndex = index / TABLE_SIZE
-				        val jIndex = index % TABLE_SIZE
-				        if (iIndex >= 0 && iIndex < TABLE_SIZE && jIndex >= 0 && jIndex < TABLE_SIZE)
-				            (list :+ (TwoDCell(iIndex, jIndex), cell))
-				        else sys.error("The DP table cannot be filled out: " + cell + " depends on " + TwoDCell(iIndex, jIndex) + ", which is outside the bounds of the DP table.")
-				    })				}
+				    var cellsToAdd = List[Cell]()
+				    for (iIndex <- iStartIndex until iEndIndex + 1) {
+				        for (jIndex <- jStartIndex until jEndIndex + 1) {
+				            if (iIndex >= 0 && iIndex < TABLE_SIZE && jIndex >= 0 && jIndex < TABLE_SIZE)
+				                (cellsToAdd :+ TwoDCell(iIndex, jIndex))
+				            else sys.error("The DP table cannot be filled out: " + cell + " depends on " + TwoDCell(iIndex, jIndex) + ", which is outside the bounds of the DP table.")
+				        }
+				    }
+				    
+				    list ::: cellsToAdd			
+				}
 				case _ => throw new MatchError("A recursive call has incorrect parameters.");
 			
 			}}
 		)
 	}
 
-	// A function for topological sort
-	// Credit: https://gist.github.com/ThiporKong/4399695
-	def tsort[A](edges: Traversable[(A, A)]): Iterable[A] = {
-	    def tsort(toPreds: Map[A, Set[A]], done: Iterable[A]): Iterable[A] = {
-	        val (noPreds, hasPreds) = toPreds.partition { _._2.isEmpty }
-	        if (noPreds.isEmpty) {
-	            if (hasPreds.isEmpty) done else sys.error("The recursive function has circular dependency and a DP solution is not possible")
-	        } else {
-	            val found = noPreds.map { _._1 }
-	            tsort(hasPreds.mapValues { _ -- found }, done ++ found)    
-	        }
-	    }
-	 
-	    val toPred = edges.foldLeft(Map[A, Set[A]]()) { (acc, e) =>
-	        acc + (e._1 -> acc.getOrElse(e._1, Set())) + (e._2 -> (acc.getOrElse(e._2, Set()) + e._1))
-	    }
-	    tsort(toPred, Seq())
-	}
 }
