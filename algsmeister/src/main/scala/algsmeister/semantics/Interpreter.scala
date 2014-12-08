@@ -105,7 +105,7 @@ package object semantics {
                 var unfilledCells = (0 to (TABLE_SIZE * TABLE_SIZE - 1)).toList.map(x => 
                     TwoDCell((x/TABLE_SIZE),(x%TABLE_SIZE))).filter(x => !filledCells.contains(x))
                 
-                 while (unfilledCells.length > 0) {
+                 while (unfilledCells.length > 0) {                     
                 	val cellsToFill = unfilledCells.filter(x => dependencyForCell(x, dep).foldLeft(true)(
                 	        (satisfied, cell) => if (filledCells.contains(cell)) satisfied else false))
                 	if (cellsToFill.length == 0) sys.error("DP table cannot be filled out.")
@@ -294,14 +294,11 @@ package object semantics {
 				        case RelativeIndex(offset) => j + offset
 				    }
 				    
-				    val start = iStartIndex * TABLE_SIZE + jStartIndex
-				    val end = iEndIndex * TABLE_SIZE + jEndIndex
-				    
 				    var cellsToAdd = List[Cell]()
 				    for (iIndex <- iStartIndex until iEndIndex + 1) {
 				        for (jIndex <- jStartIndex until jEndIndex + 1) {
 				            if (iIndex >= 0 && iIndex < TABLE_SIZE && jIndex >= 0 && jIndex < TABLE_SIZE)
-				                (cellsToAdd :+ TwoDCell(iIndex, jIndex))
+				                (cellsToAdd = cellsToAdd :+ TwoDCell(iIndex, jIndex))
 				            else sys.error("The DP table cannot be filled out: " + cell + " depends on " + TwoDCell(iIndex, jIndex) + ", which is outside the bounds of the DP table.")
 				        }
 				    }
