@@ -156,39 +156,33 @@ package object semantics {
 	}
 	
 	def evalBaseCases(dimension: Dimension, baseCases: BaseCases): List[Cell] = {
-		baseCases.baseCases.foldLeft(List[Cell]())((list, baseCase) => {
-		    val evaluated = evalBaseCase(dimension, baseCase)
-		    if (evaluated.size == 0) sys.error("Unsatisfiable base case condition found")
-		    else list ::: evalBaseCase(dimension, baseCase)
-		})
+		dimension match {
+		    case OneD() => {
+		        (0 to TABLE_SIZE - 1).toList.foldLeft(List[Cell]())((list, i) => {
+		        	val cell = OneDCell(i)
+		        	if (satisfiesBaseCases(cell, baseCases)) list :+ cell else list
+		        })
+		    }
+		    case TwoD() => {
+		        (0 to (TABLE_SIZE * TABLE_SIZE - 1)).toList.foldLeft(List[Cell]())((list, i) => {
+	                val cell = TwoDCell(i / TABLE_SIZE, i % TABLE_SIZE)
+	                if (satisfiesBaseCases(cell, baseCases)) list :+ cell else list
+		        })     
+	}}}
+		        
+	
+	def satisfiesBaseCases(cell: Cell, baseCases: BaseCases): Boolean = {
+	    baseCases.baseCases.foldLeft(false)((bool, baseCase) => {
+	    	bool || baseCase.clauses.foldLeft(true)((bool, clause) => {
+			    evalClause(cell, clause) && bool
+            })})
 	}
 	
-	def evalBaseCase(dimension: Dimension, baseCase: BaseCase): List[Cell] = {
-	    dimension match {
-	        case OneD() => {
-	            (0 to TABLE_SIZE - 1).toList.foldLeft(List[Cell]())((list, i) => {
-	                val cell = OneDCell(i)
-	                val evaluation = baseCase.clauses.foldLeft(true)((bool, clause) => {
-	                	clause.variable match {
-	                	    case iVal() => {evalClause(cell, clause) && bool}
-	                	    case jVal() => {sys.error("j is not a recognized variable in a 1D function.")}
-	                	}
-	                })
-	                
-	                if (evaluation) list ::: List(cell) else list
-	            })
-	        }
-	        
-	        case TwoD() => {
-	            (0 to (TABLE_SIZE * TABLE_SIZE - 1)).toList.foldLeft(List[Cell]())((list, i) => {
-	                val cell = TwoDCell(i / TABLE_SIZE, i % TABLE_SIZE)
-	                val evaluation = baseCase.clauses.foldLeft(true)((bool, clause) => {
-	                	evalClause(cell, clause) && bool
-	                })
-	                
-	                if (evaluation) list ::: List(cell) else list
-	            })     
-	}}}
+//	def evalBaseCase(cell: Cell, baseCase: BaseCase): Boolean = {
+//			baseCase.clauses.foldLeft(true)((bool, clause) => {
+//			    evalClause(cell, clause) && bool
+//            })
+//	}
 	
 	def evalClause(cell: Cell, clause: Clause): Boolean = {
 	    (cell, clause.variable) match {
