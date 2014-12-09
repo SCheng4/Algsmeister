@@ -149,40 +149,28 @@ package object semantics {
 	    }
 	}
 	
-	def printProgramInfo(): Unit = {
-		println("These cells labelled with 0 are the base cases and can be filled in for free.")
-	    println("The other numbers indicate one order in which the remaining cells can be filled in.")
-	    println("(Note that there are frequently more than one order to fill the DP table.)")
-	}
-	
 	def evalBaseCases(dimension: Dimension, baseCases: BaseCases): List[Cell] = {
 		dimension match {
 		    case OneD() => {
 		        (0 to TABLE_SIZE - 1).toList.foldLeft(List[Cell]())((list, i) => {
 		        	val cell = OneDCell(i)
-		        	if (satisfiesBaseCases(cell, baseCases)) list :+ cell else list
+		        	if (isBaseCase(cell, baseCases)) list :+ cell else list
 		        })
 		    }
 		    case TwoD() => {
 		        (0 to (TABLE_SIZE * TABLE_SIZE - 1)).toList.foldLeft(List[Cell]())((list, i) => {
 	                val cell = TwoDCell(i / TABLE_SIZE, i % TABLE_SIZE)
-	                if (satisfiesBaseCases(cell, baseCases)) list :+ cell else list
+	                if (isBaseCase(cell, baseCases)) list :+ cell else list
 		        })     
 	}}}
 		        
 	
-	def satisfiesBaseCases(cell: Cell, baseCases: BaseCases): Boolean = {
+	def isBaseCase(cell: Cell, baseCases: BaseCases): Boolean = {
 	    baseCases.baseCases.foldLeft(false)((bool, baseCase) => {
 	    	bool || baseCase.clauses.foldLeft(true)((bool, clause) => {
 			    evalClause(cell, clause) && bool
             })})
 	}
-	
-//	def evalBaseCase(cell: Cell, baseCase: BaseCase): Boolean = {
-//			baseCase.clauses.foldLeft(true)((bool, clause) => {
-//			    evalClause(cell, clause) && bool
-//            })
-//	}
 	
 	def evalClause(cell: Cell, clause: Clause): Boolean = {
 	    (cell, clause.variable) match {
