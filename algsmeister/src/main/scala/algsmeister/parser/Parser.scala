@@ -4,34 +4,58 @@ import scala.util.parsing.combinator._
 import algsmeister.ir._
 
 object funcParser extends JavaTokenParsers with PackratParsers {
+    val DEFAULT_SIZE = 10;
+    
 	// parsing interface
     def apply(s: String): ParseResult[AST] = parseAll(program, s)
     
     lazy val program: PackratParser[Program] =
-    	(opt(tableSize)~"def"~"function"~arguments~":"~
+    	(functionDef~
       		"if"~"("~baseCases~")"~":"~"return"~
       		"else"~"consider"~":"~
       			recursiveCases
-      	^^ {case tableSize~"def"~"function"~arguments~":"~
+      	^^ {case dim~
       			     "if"~"("~baseCases~")"~":"~"return"~
       			     "else"~"consider"~":"~
       			     	recursiveCases
-      			 => {val size = tableSize match {case Some(parsedSize) => parsedSize case _ => DefaultSize()}
-      			     Program(arguments, size, baseCases, recursiveCases)}
-      			 }
+      			 => Program(dim, baseCases, recursiveCases)
+      		}
     	| failure("Invalid syntax")
-    	)
+    )
     
-    lazy val tableSize: PackratParser[TableSize] = (
-        ("i"~"<="~number~","~"j"~"<="~number) ^^ {case ("i"~"<="~iMax~","~"j"~"<="~jMax) => TwoDSize(iMax, jMax)}
-        | ("i"~"<="~number) ^^ {case ("i"~"<="~number) => OneDSize(number)}
-        | failure("Invalid syntax in custom table size.")
+    lazy val functionDef: PackratParser[Dimension] = (
+    	(opt(tableSize)~"def"~"function"~"("~"i"~")"~":") ^^
+    		{case (tableSize~"def"~"function"~"("~"i"~")"~":") =>
+    		    tableSize match {
+    		        case Some(parsedSize) =>
+    		        	parsedSize match {
+    		            	case ISize(maxI) => OneD(maxI)
+    		            	case _ => sys.error("Invalid variable in table size specification for 1D function")
+    		        	}
+    		        case None => OneD(DEFAULT_SIZE)
+    		        }
+    		}
+    	| (opt(tableSize)~"def"~"function"~"("~"i"~","~"j"~")"~":") ^^
+    		{case (tableSize~"def"~"function"~"("~"i"~","~"j"~")"~":") =>
+    		    tableSize match {
+    		        case Some(parsedSize) =>
+    		        	parsedSize match {
+    		            	case ISize(maxI) => TwoD(maxI, DEFAULT_SIZE)
+    		            	case JSize(maxJ) => TwoD(DEFAULT_SIZE, maxJ)
+    		            	case TwoDSize(maxI, maxJ) => TwoD(maxI, maxJ)
+    		        	}
+    		        case None => TwoD(DEFAULT_SIZE, DEFAULT_SIZE)
+    		        }
+    		}
+    	| failure("Invalid syntax. User specified table size must match dimension of the function.")
     )
     	
-    lazy val arguments: PackratParser[Dimension] = (
-          "("~"i"~")" ^^ {case "("~"i"~")" => OneD()}
-        | "("~"i"~","~"j"~")" ^^ {case "("~"i"~","~"j"~")" => TwoD()}
-        | failure("Function arguments must be i and j.")
+    lazy val tableSize: PackratParser[TableSize] = (
+        ("i"~"<="~number~","~"j"~"<="~number) ^^ {case ("i"~"<="~iMax~","~"j"~"<="~jMax) => TwoDSize(iMax, jMax)}
+        | ("j"~"<="~number~","~"i"~"<="~number) ^^ {case ("j"~"<="~jMax~","~"i"~"<="~iMax) => TwoDSize(iMax, jMax)}
+        | ("i"~"<="~number) ^^ {case ("i"~"<="~number) => ISize(number)}
+        | ("j"~"<="~number) ^^ {case ("j"~"<="~number) => JSize(number)}
+        | failure("Invalid syntax in custom table size.")
     )
      
     lazy val baseCases: PackratParser[BaseCases] = ( 

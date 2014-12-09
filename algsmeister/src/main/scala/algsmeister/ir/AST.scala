@@ -1,16 +1,16 @@
 package algsmeister.ir
 
 sealed abstract class AST
-case class Program(dimension: Dimension, size: TableSize, baseCases: BaseCases, dependencies: Dependencies) extends AST
+case class Program(dimension: Dimension, baseCases: BaseCases, dependencies: Dependencies) extends AST
 
 sealed abstract class Dimension extends AST
-case class OneD() extends Dimension
-case class TwoD() extends Dimension
+case class OneD(maxI: Int) extends Dimension
+case class TwoD(maxI: Int, maxJ: Int) extends Dimension
 
 sealed abstract class TableSize extends AST
-case class OneDSize(maxI: Int) extends TableSize
+case class ISize(maxI: Int) extends TableSize
+case class JSize(maxJ: Int) extends TableSize
 case class TwoDSize(maxI: Int, maxJ: Int) extends TableSize
-case class DefaultSize() extends TableSize
 
 case class BaseCases(baseCases: List[BaseCase]) extends AST
 case class BaseCase(clauses: List[Clause]) extends AST

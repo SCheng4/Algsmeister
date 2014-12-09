@@ -17,8 +17,8 @@ package object semantics {
     
 	def evalProgram(ast: AST): Unit = {
 		ast match {
-		case Program(dimension, size, baseCases, dependencies) => {
-		    //println(ast)
+		case Program(dimension, baseCases, dependencies) => {
+		    println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
 			val DPTable = fillDPTable(dimension, evaluatedBaseCases, dependencies)
 			printDPTable(DPTable)
@@ -33,8 +33,8 @@ package object semantics {
     def printRuntime(dim: Dimension, dep: Dependencies) = {
         val runtime = getRuntime(dim, dep)
         val actualRuntime = dim match {
-            case OneD() => if (runtime == constant()) "O(n)" else "O(n^2)"
-            case TwoD() => if (runtime == constant()) "O(n^2)" else if (runtime == linear()) "O(n^3)" else "O(n^4)"
+            case OneD(maxI) => if (runtime == constant()) "O(n)" else "O(n^2)"
+            case TwoD(maxI, maxJ) => if (runtime == constant()) "O(n^2)" else if (runtime == linear()) "O(n^3)" else "O(n^4)"
         }
         val perCell = if (runtime == constant()) "O(1)" else if (runtime == linear()) "O(n)" else "O(n^2)"
         println("It takes up to " + perCell + " time to fill out each cell in the table, and up to a total of " + actualRuntime + " to fill out the entire table")
@@ -42,7 +42,7 @@ package object semantics {
     
     def getRuntime(dim: Dimension, dep: Dependencies): Runtime = {
         dim match {
-            case OneD() => {
+            case OneD(maxI) => {
                 var isLinear = false
                 for (dependency <- dep.dependencies) {
                     (dependency.start, dependency.end) match {
@@ -54,7 +54,7 @@ package object semantics {
                 if (isLinear) new linear() else new constant()
             }
             
-            case TwoD() => {
+            case TwoD(maxI, maxJ) => {
                 var isLinear = false
                 var isQuad = false
                 for (dependency <- dep.dependencies) {
@@ -79,7 +79,7 @@ package object semantics {
     
     def fillDPTable(dim: Dimension, baseCases: List[Cell], dep: Dependencies): DPTable = {
         dim match {
-            case OneD() => {
+            case OneD(maxI) => {
                 var table = new OneDTable(new Array[Int](TABLE_SIZE))
                 var k = 1
                 var filledCells = baseCases;
@@ -98,7 +98,7 @@ package object semantics {
                 }
                 table
             }
-            case TwoD() => {
+            case TwoD(maxI, maxJ) => {
                 val table = new TwoDTable(Array.ofDim[Int](TABLE_SIZE, TABLE_SIZE))
                 var k = 1
                 var filledCells = baseCases;
@@ -151,13 +151,13 @@ package object semantics {
 	
 	def evalBaseCases(dimension: Dimension, baseCases: BaseCases): List[Cell] = {
 		dimension match {
-		    case OneD() => {
+		    case OneD(maxI) => {
 		        (0 to TABLE_SIZE - 1).toList.foldLeft(List[Cell]())((list, i) => {
 		        	val cell = OneDCell(i)
 		        	if (isBaseCase(cell, baseCases)) list :+ cell else list
 		        })
 		    }
-		    case TwoD() => {
+		    case TwoD(maxI, maxJ) => {
 		        (0 to (TABLE_SIZE * TABLE_SIZE - 1)).toList.foldLeft(List[Cell]())((list, i) => {
 	                val cell = TwoDCell(i / TABLE_SIZE, i % TABLE_SIZE)
 	                if (isBaseCase(cell, baseCases)) list :+ cell else list
