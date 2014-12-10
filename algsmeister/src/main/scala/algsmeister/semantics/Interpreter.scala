@@ -4,7 +4,7 @@ import algsmeister.ir._
 
 package object semantics {
     
-    val TABLE_SIZE = 10;
+    //val TABLE_SIZE = 10;
     
     class DPTable()
 	case class OneDTable(table: Array[Int]) extends DPTable
@@ -21,7 +21,7 @@ package object semantics {
 		    println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
 			val DPTable = fillDPTable(dimension, evaluatedBaseCases, dependencies)
-			printDPTable(DPTable)
+			printDPTable(dimension, DPTable)
 			printRuntime(dimension, dependencies)
 		}
 		case _ => {
@@ -80,13 +80,13 @@ package object semantics {
     def fillDPTable(dim: Dimension, baseCases: List[Cell], dep: Dependencies): DPTable = {
         dim match {
             case OneD(maxI) => {
-                var table = new OneDTable(new Array[Int](TABLE_SIZE))
+                var table = new OneDTable(new Array[Int](maxI))
                 var k = 1
                 var filledCells = baseCases;
-                var unfilledCells = (0 to TABLE_SIZE - 1).toList.map(x => OneDCell(x)).filter(x => !filledCells.contains(x))
+                var unfilledCells = (0 to maxI - 1).toList.map(x => OneDCell(x)).filter(x => !filledCells.contains(x))
                 
                 while (unfilledCells.length > 0) {
-                	val cellsToFill = unfilledCells.filter(x => dependencyForCell(x, dep).foldLeft(true)(
+                	val cellsToFill = unfilledCells.filter(x => dependencyForCell(dim, x, dep).foldLeft(true)(
                 	        (satisfied, cell) => if (filledCells.contains(cell)) satisfied else false))
                 	if (cellsToFill.length == 0) sys.error("DP table cannot be filled out.")
                 	for (cell <- cellsToFill) {
@@ -99,14 +99,14 @@ package object semantics {
                 table
             }
             case TwoD(maxI, maxJ) => {
-                val table = new TwoDTable(Array.ofDim[Int](TABLE_SIZE, TABLE_SIZE))
+                val table = new TwoDTable(Array.ofDim[Int](maxI, maxJ))
                 var k = 1
                 var filledCells = baseCases;
-                var unfilledCells = (0 to (TABLE_SIZE * TABLE_SIZE - 1)).toList.map(x => 
-                    TwoDCell((x/TABLE_SIZE),(x%TABLE_SIZE))).filter(x => !filledCells.contains(x))
+                var unfilledCells = (0 to (maxI * maxJ - 1)).toList.map(x => 
+                    TwoDCell((x/maxJ),(x%maxJ))).filter(x => !filledCells.contains(x))
                 
                  while (unfilledCells.length > 0) {                     
-                	val cellsToFill = unfilledCells.filter(x => dependencyForCell(x, dep).foldLeft(true)(
+                	val cellsToFill = unfilledCells.filter(x => dependencyForCell(dim, x, dep).foldLeft(true)(
                 	        (satisfied, cell) => if (filledCells.contains(cell)) satisfied else false))
                 	if (cellsToFill.length == 0) sys.error("DP table cannot be filled out.")
                 	for (cell <- cellsToFill) {
@@ -121,63 +121,69 @@ package object semantics {
         }
     } 
 
-	def printDPTable(table: DPTable): Unit = {
-	    table match {
-	        case OneDTable(cells) => {
+	def printDPTable(dim: Dimension, table: DPTable): Unit = {
+	    (dim, table) match {
+	        case (OneD(maxI), OneDTable(cells)) => {
 	            println("The DP table has dimension 1 x n.")
-	            println{"+---+---+---+---+---+---+---+---+---+---+"}
+	            printBar(maxI)
 	            print("|")
-	            for (i <- 0 until cells.length) {
+	            for (i <- 0 until maxI) {
 	                print(" " + cells(i) + " |")
 	            }
-	            println{"\n+---+---+---+---+---+---+---+---+---+---+"}
+	            printBar(maxI)
 	        }
 	        
-	        case TwoDTable(cells) => {
+	        case (TwoD(maxI, maxJ), TwoDTable(cells)) => {
 	            println("The DP table has dimension n x n.")
-	            println("+---+---+---+---+---+---+---+---+---+---+")
+	            printBar(maxJ)
 	            
-	            for (i <- 0 until (TABLE_SIZE)) {
+	            for (i <- 0 until (maxI)) {
 	                print("|")
-	                for (j <- 0 until (TABLE_SIZE)) {
+	                for (j <- 0 until (maxJ)) {
 	                    if (cells(i)(j) < 10) print(" " + cells(i)(j) + " |")
 	                    else print(" " + cells(i)(j) + "|")
 	                }
-	                println("\n+---+---+---+---+---+---+---+---+---+---+")
+	                printBar(maxJ)
 	            }
 	        }
 	    }
 	}
 	
-	def evalBaseCases(dimension: Dimension, baseCases: BaseCases): List[Cell] = {
-		dimension match {
+	def printBar(cols: Int): Unit = {
+	    print("\n")
+	    for (i <- 0 until cols) print("+---")
+	    print("+\n")
+	}
+	
+	def evalBaseCases(dim: Dimension, baseCases: BaseCases): List[Cell] = {
+		dim match {
 		    case OneD(maxI) => {
-		        (0 to TABLE_SIZE - 1).toList.foldLeft(List[Cell]())((list, i) => {
+		        (0 to maxI - 1).toList.foldLeft(List[Cell]())((list, i) => {
 		        	val cell = OneDCell(i)
-		        	if (isBaseCase(cell, baseCases)) list :+ cell else list
+		        	if (isBaseCase(dim, cell, baseCases)) list :+ cell else list
 		        })
 		    }
 		    case TwoD(maxI, maxJ) => {
-		        (0 to (TABLE_SIZE * TABLE_SIZE - 1)).toList.foldLeft(List[Cell]())((list, i) => {
-	                val cell = TwoDCell(i / TABLE_SIZE, i % TABLE_SIZE)
-	                if (isBaseCase(cell, baseCases)) list :+ cell else list
+		        (0 to (maxI * maxJ - 1)).toList.foldLeft(List[Cell]())((list, i) => {
+	                val cell = TwoDCell(i / maxJ, i % maxJ)
+	                if (isBaseCase(dim, cell, baseCases)) list :+ cell else list
 		        })     
 	}}}
 		        
 	
-	def isBaseCase(cell: Cell, baseCases: BaseCases): Boolean = {
+	def isBaseCase(dim: Dimension, cell: Cell, baseCases: BaseCases): Boolean = {
 	    baseCases.baseCases.foldLeft(false)((bool, baseCase) => {
 	    	bool || baseCase.clauses.foldLeft(true)((bool, clause) => {
-			    evalClause(cell, clause) && bool
+			    evalClause(dim, cell, clause) && bool
             })})
 	}
 	
-	def evalClause(cell: Cell, clause: Clause): Boolean = {
-	    (cell, clause.variable) match {
-	        case (OneDCell(i), iVal()) => {
+	def evalClause(dim: Dimension, cell: Cell, clause: Clause): Boolean = {
+	    (dim, cell, clause.variable) match {
+	        case (OneD(maxI), OneDCell(i), iVal()) => {
 	            val condition = clause.value match {
 	                case intValue(k) => k
-	                case n() => TABLE_SIZE - 1
+	                case n() => maxI - 1
 	                case iVal() => sys.error("You cannot use same value on both side of base case condition!")
 	                case jVal() => sys.error("j is not a valid value in a 1D function")
 	            }
@@ -191,11 +197,11 @@ package object semantics {
 	            }
 	        }
 	        
-	        case (TwoDCell(i, j), iVal()) => {
+	        case (TwoD(maxI, maxJ), TwoDCell(i, j), iVal()) => {
 	            // TODO: implement 2D baseCase evaluations
 	        	val condition = clause.value match {
 	                case intValue(k) => k
-	                case n() => TABLE_SIZE - 1
+	                case n() => maxI - 1
 	                case iVal() => sys.error("You cannot use same value on both side of base case condition!")
 	                case jVal() => j
 	            }
@@ -209,10 +215,10 @@ package object semantics {
 	            }
 	        }
 	        
-	        case (TwoDCell(i, j), jVal()) => {
+	        case (TwoD(maxI, maxJ), TwoDCell(i, j), jVal()) => {
 	        	val condition = clause.value match {
 	                case intValue(k) => k
-	                case n() => TABLE_SIZE - 1
+	                case n() => maxJ - 1
 	                case iVal() => i
 	                case jVal() => sys.error("You cannot use same value on both side of base case condition!")
 	            }
@@ -232,10 +238,10 @@ package object semantics {
 	    }
 	}
 	
-	def dependencyForCell(cell: Cell, dependency: Dependencies): List[Cell] = {
+	def dependencyForCell(dim: Dimension, cell: Cell, dependency: Dependencies): List[Cell] = {
 		dependency.dependencies.foldLeft(List[Cell]())((list, dep) => {
-			(cell, dep.start, dep.end) match {
-				case (OneDCell(i), OneDIndices(start), OneDIndices(end)) => {
+			(dim, cell, dep.start, dep.end) match {
+				case (OneD(maxI), OneDCell(i), OneDIndices(start), OneDIndices(end)) => {
 				    
 				    val startIndex = start match {
 				        case AbsIndex(index) => index
@@ -248,13 +254,13 @@ package object semantics {
 				    }
 				    
 				    list ::: (startIndex to endIndex).toList.foldLeft(List[Cell]())((list, index) => {
-				        if (index >= 0 && index < TABLE_SIZE) (list :+ OneDCell(index))
+				        if (index >= 0 && index < maxI) (list :+ OneDCell(index))
 				        else sys.error("The DP table cannot be filled out: " + cell + " depends on " + OneDCell(index) + ", which is outside the bounds of the DP table.")
 				    })
 				    
 				}
 				
-				case (TwoDCell(i, j), TwoDIndices(iStart, jStart), TwoDIndices(iEnd, jEnd)) => {
+				case (TwoD(maxI, maxJ), TwoDCell(i, j), TwoDIndices(iStart, jStart), TwoDIndices(iEnd, jEnd)) => {
 					
 				    val iStartIndex = iStart match {
 				        case AbsIndex(index) => index
@@ -279,7 +285,7 @@ package object semantics {
 				    var cellsToAdd = List[Cell]()
 				    for (iIndex <- iStartIndex until iEndIndex + 1) {
 				        for (jIndex <- jStartIndex until jEndIndex + 1) {
-				            if (iIndex >= 0 && iIndex < TABLE_SIZE && jIndex >= 0 && jIndex < TABLE_SIZE)
+				            if (iIndex >= 0 && iIndex < maxI && jIndex >= 0 && jIndex < maxJ)
 				                (cellsToAdd = cellsToAdd :+ TwoDCell(iIndex, jIndex))
 				            else sys.error("The DP table cannot be filled out: " + cell + " depends on " + TwoDCell(iIndex, jIndex) + ", which is outside the bounds of the DP table.")
 				        }
