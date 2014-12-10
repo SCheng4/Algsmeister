@@ -2,10 +2,7 @@ package algsmeister
 
 import algsmeister.ir._
 
-package object semantics {
-    
-    //val TABLE_SIZE = 10;
-    
+package object semantics {    
     class DPTable()
 	case class OneDTable(table: Array[Int]) extends DPTable
 	case class TwoDTable(table: Array[Array[Int]]) extends DPTable
@@ -15,10 +12,20 @@ package object semantics {
 	case class linear() extends Runtime
 	case class quad() extends Runtime
     
+	
+	sealed abstract class Cell
+	case class OneDCell(col: Int) extends Cell {
+    	override def toString = "cell(" + col + ")"
+    }
+	case class TwoDCell(row: Int, col: Int) extends Cell {
+		override def toString = "cell(" + row + ", " + col + ")"
+	}
+
+	
 	def evalProgram(ast: AST): Unit = {
 		ast match {
 		case Program(dimension, baseCases, dependencies) => {
-		    println(ast)
+		    //println(ast)
 			val evaluatedBaseCases = evalBaseCases(dimension, baseCases)
 			val DPTable = fillDPTable(dimension, evaluatedBaseCases, dependencies)
 			printDPTable(dimension, DPTable)
@@ -37,7 +44,7 @@ package object semantics {
             case TwoD(maxI, maxJ) => if (runtime == constant()) "O(n^2)" else if (runtime == linear()) "O(n^3)" else "O(n^4)"
         }
         val perCell = if (runtime == constant()) "O(1)" else if (runtime == linear()) "O(n)" else "O(n^2)"
-        println("It takes up to " + perCell + " time to fill out each cell in the table, and up to a total of " + actualRuntime + " to fill out the entire table")
+        println("It takes up to " + perCell + " time to fill out each cell in the table, and up to a total of " + actualRuntime + " to fill out the entire table.")
     }
     
     def getRuntime(dim: Dimension, dep: Dependencies): Runtime = {
@@ -130,6 +137,7 @@ package object semantics {
 	            for (i <- 0 until maxI) {
 	                print(" " + cells(i) + " |")
 	            }
+	            print("\n")
 	            printBar(maxI)
 	        }
 	        
@@ -143,14 +151,15 @@ package object semantics {
 	                    if (cells(i)(j) < 10) print(" " + cells(i)(j) + " |")
 	                    else print(" " + cells(i)(j) + "|")
 	                }
+	                print("\n")
 	                printBar(maxJ)
 	            }
 	        }
+	        case (_) => sys.error("Inconsistency in table size detected.")
 	    }
 	}
 	
 	def printBar(cols: Int): Unit = {
-	    print("\n")
 	    for (i <- 0 until cols) print("+---")
 	    print("+\n")
 	}
